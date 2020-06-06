@@ -195,10 +195,14 @@ class STFT(DFTBase):
           imag: (batch_size, n_fft // 2 + 1, time_steps)
         """
 
-        x = input[:, None, :]   # (batch_size, channels_num, data_length)
 
         if self.center:
-            x = F.pad(x, pad=(self.n_fft // 2, self.n_fft // 2), mode=self.pad_mode)
+            x = input[:, None, :, None]   # (batch_size, channels_num, data_length, data_height)
+            x = F.pad(x, pad=(0, 0, self.n_fft // 2, self.n_fft // 2), mode=self.pad_mode)
+            x = x.squeeze(3)
+        else:
+            x = input[:, None, :]   # (batch_size, channels_num, data_length)
+            
 
         real = self.conv_real(x)
         imag = self.conv_imag(x)
@@ -428,11 +432,11 @@ class LogmelFilterBank(nn.Module):
 
     def power_to_db(self, input):
         """Power to db, this function is the pytorch implementation of 
-        librosa.core.power_to_lb
+        librosa.core.power_to_db
         """
         ref_value = self.ref
         # log_spec = 10.0 * torch.log10(torch.clamp(input, min=self.amin, max=np.inf))
-        log_spec = 10.0 * torch.log(torch.clamp(input, min=self.amin, max=np.inf)) / np.log(10)
+        log_spec = 10.0 * torch.log(torch.clamp(input, min=self.amin)) / np.log(10)
         log_spec -= 10.0 * np.log10(np.maximum(self.amin, ref_value))
 
         if self.top_db is not None:
